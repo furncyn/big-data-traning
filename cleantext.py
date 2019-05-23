@@ -122,13 +122,15 @@ def sanitize(text):
     text = re.sub(r'(\\n)', ' ', text)
     
     # Remove URLs. Replace them with what is inside the [].
+    text = re.sub(r'(\(http://\S+\)\.)', '.', text)
+    text = re.sub(r'(\(https://\S+\)\.)', '.', text)
     text = re.sub(r'(http://\S+)', '', text)
     text = re.sub(r'(\(http://\S+\))', '', text)
     text = re.sub(r'(https://\S+)', '', text)
     text = re.sub(r'(\(https://\S+\))', '', text)
     text = re.sub(r'(\[)', '', text)         
     text = re.sub(r'(\])', '', text)
-    
+        
     # Remove the first slash of a raw reference of subreddit and user
     # (/r/subredditname -> r/subredditname and /u/someuser -> u/someuser)
     m = re.search('(/[r|u]\S+)', text)
@@ -163,7 +165,11 @@ def sanitize(text):
         matches = re.findall('([#$%&*+<=>@^`~\"\\\(\)\[\]\{\}])', tokens[i])
         for m in matches:
             tokens[i] = tokens[i].replace(m, '')
-    
+
+    # There was for some reason empty tokens again, so we will remove them
+    while ''  in tokens:
+        tokens.remove('')
+
     # Parsed comment
     parsed_text = ""
     for token in tokens:
@@ -209,6 +215,7 @@ def sanitize(text):
     
     result = [parsed_text, unigrams, bigrams, trigrams]
     return result
+    
 
 if __name__ == "__main__":
     # This is the Python main function.
