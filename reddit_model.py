@@ -2,13 +2,13 @@ from __future__ import print_function
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import udf
-from pyspark.sql functions import col
+from pyspark.sql.functions import col
 from pyspark.sql.types import *
 from pyspark.ml.feature import CountVectorizer
 from cleantext import sanitize
 from pyspark.sql import functions as F
 from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from pyspark.ml.tuning import CrossValidator, CrossValidatorModel, ParamGridBuilder
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
 
@@ -19,6 +19,9 @@ def split_arr_to_word(arr):
         for w in temp_arr:
             new_arr.append(w)
     return new_arr
+
+def remove_first_three(id):
+    return new_id[3:]
 
 def main(context):
     """Main function takes a Spark SQL context."""
@@ -54,16 +57,16 @@ def main(context):
     cv = CountVectorizer(minDF=10.0, inputCol="sanitized_text", outputCol="vectors")
     cv_table = cv.fit(sanitized_table)
     result = cv_table.transform(sanitized_table)
-    result.show()
     
     # Task 6B: Add columns for positive and negative labels
     final = result.withColumn("positive", F.when(result.labeldjt == 1, 1).otherwise(0))\
             .withColumn("negative", F.when(result.labeldjt == -1, 1).otherwise(0))
     pos = final.select(col("id"), col("vectors").alias("features"), col("positive").alias("label"))
     neg = final.select(col("id"), col("vectors").alias("features"), col("negative").alias("label"))
-    final.show()
 
     # Task 7: Initialize two logistic regression models.
+    # Code to generate the models:
+    '''
     # Replace labelCol with the column containing the label, and featuresCol with the column containing the features.
     poslr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
     neglr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
@@ -102,8 +105,18 @@ def main(context):
     # Once we train the models, we don't want to do it again. We can save the models and load them again later.
     posModel.save("project2/pos.model")
     negModel.save("project2/neg.model")
+    '''
+
+    # To load saved models:
+    posModel = CrossValidatorModel.load("project2/pos.model")
+    negModel = CrossValidatorModel.load("project2/neg.model")
 
 
+    # Task 8: read more parts of comments
+    fix_link_udf = udf(remove_first_three, StringType())
+    comments_fixed = comments.select(col("id").alias("comment_id"), fix_link_udf("link_id").alias("link_id"),"created_utc","body",col("author_flair_text").alias("state"))
+    submissions_limited = submissions.select("id", "title")
+    new_table = submissions_limited.join(comments_fixed, comments_fixed.link_id == submissions_limited.id)
 
 
 if __name__ == "__main__":
