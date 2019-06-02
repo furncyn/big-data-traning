@@ -19,10 +19,14 @@ def split_arr_to_word(arr):
         for w in temp_arr:
             new_arr.append(w)
     return new_arr
+<<<<<<< HEAD
+    
+=======
 
 def remove_first_three(id):
     return new_id[3:]
 
+>>>>>>> 30a409927e3171abb6f1f9ebb73cbfdfc52601f4
 def main(context):
     """Main function takes a Spark SQL context."""
     # Task 1: load data
@@ -49,7 +53,6 @@ def main(context):
     # store all of them into one column and split them by words.
     sanitize_udf = udf(sanitize, ArrayType(StringType()))
     split_udf = udf(split_arr_to_word, ArrayType(StringType()))
-    # removed dem and gop labels because unnecessary, input id because redundant
     sanitized_table = table.select("id", "labeldjt", \
             split_udf(sanitize_udf("body")).alias("sanitized_text"))
     
@@ -118,6 +121,13 @@ def main(context):
     submissions_limited = submissions.select("id", "title")
     new_table = submissions_limited.join(comments_fixed, comments_fixed.link_id == submissions_limited.id)
 
+    # Task 9:
+    # remove any comments that contain '\s' or '&gt;'
+    new_table = new_table.filter(~new_table.body.contains("&gt;") & ~new_table.body.contains("\s"))
+    # repeat task 4 and 5
+    link_id, state, comment_id, body, created_utc, title, id]
+    sanitized_new_table = new_table.select("link_id", "state", "comment_id", "body", "created_utc", \
+            "title", "id", split_udf(sanitize_udf("body")).alias("sanitized_text"))
 
 if __name__ == "__main__":
     conf = SparkConf().setAppName("CS143 Project 2B")
