@@ -2,10 +2,15 @@ from __future__ import print_function
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import udf
+from pyspark.sql functions import col
 from pyspark.sql.types import *
 from pyspark.ml.feature import CountVectorizer
 from cleantext import sanitize
 from pyspark.sql import functions as F
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+
 
 def split_arr_to_word(arr):
     new_arr = []
@@ -52,8 +57,54 @@ def main(context):
     result.show()
     
     # Task 6B: Add columns for positive and negative labels
-    final = result.withColumn("positive", F.when(result.labeldjt == 1, 1).otherwise(0)).withColumn("negative", F.when(result.labeldjt == -1, 1).otherwise(0))
+    final = result.withColumn("positive", F.when(result.labeldjt == 1, 1).otherwise(0))\
+            .withColumn("negative", F.when(result.labeldjt == -1, 1).otherwise(0))
+    pos = final.select(col("id"), col("vectors").alias("features"), col("positive").alias("label"))
+    neg = final.select(col("id"), col("vectors").alias("features"), col("negative").alias("label"))
     final.show()
+
+    # Task 7: Initialize two logistic regression models.
+    # Replace labelCol with the column containing the label, and featuresCol with the column containing the features.
+    poslr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
+    neglr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
+
+    # This is a binary classifier so we need an evaluator that knows how to deal with binary classifiers.
+    posEvaluator = BinaryClassificationEvaluator()
+    negEvaluator = BinaryClassificationEvaluator()
+    # There are a few parameters associated with logistic regression. We do not know what they are a priori.
+    # We do a grid search to find the best parameters. We can replace [1.0] with a list of values to try.
+    # We will assume the parameter is 1.0. Grid search takes forever.
+    posParamGrid = ParamGridBuilder().addGrid(poslr.regParam, [1.0]).build()
+    negParamGrid = ParamGridBuilder().addGrid(neglr.regParam, [1.0]).build()
+    # We initialize a 5 fold cross-validation pipeline.
+    posCrossval = CrossValidator(
+        estimator=poslr,
+        evaluator=posEvaluator,
+        estimatorParamMaps=posParamGrid,
+        numFolds=5)
+    negCrossval = CrossValidator(
+        estimator=neglr,
+        evaluator=negEvaluator,
+        estimatorParamMaps=negParamGrid,
+        numFolds=5)
+    # Although crossvalidation creates its own train/test sets for
+    # tuning, we still need a labeled test set, because it is not
+    # accessible from the crossvalidator (argh!)
+    # Split the data 50/50
+    posTrain, posTest = pos.randomSplit([0.5, 0.5])
+    negTrain, negTest = neg.randomSplit([0.5, 0.5])
+    # Train the models
+    print("Training positive classifier...")
+    posModel = posCrossval.fit(posTrain)
+    print("Training negative classifier...")
+    negModel = negCrossval.fit(negTrain)
+
+    # Once we train the models, we don't want to do it again. We can save the models and load them again later.
+    posModel.save("project2/pos.model")
+    negModel.save("project2/neg.model")
+
+
+
 
 if __name__ == "__main__":
     conf = SparkConf().setAppName("CS143 Project 2B")

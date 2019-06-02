@@ -102,3 +102,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+*.parquet
+comments-minimal.json.bz2
+labeled_data.csv
+submissions.json.bz2
