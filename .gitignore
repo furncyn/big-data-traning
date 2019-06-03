@@ -125,3 +125,4 @@ project2/neg.model/estimator/metadata/_SUCCESS
 project2/neg.model/bestModel/metadata/part-00000
 project2/neg.model/bestModel/metadata/_SUCCESS
 project2/neg.model/bestModel/data/_SUCCESS
+*.swp

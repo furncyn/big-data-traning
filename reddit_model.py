@@ -1,8 +1,7 @@
 from __future__ import print_function
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
-from pyspark.sql.functions import udf
-from pyspark.sql.functions import col
+from pyspark.sql.functions import udf, col, lit
 from pyspark.sql.types import *
 from pyspark.ml.feature import CountVectorizer
 from cleantext import sanitize
@@ -10,7 +9,6 @@ from pyspark.sql import functions as F
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.tuning import CrossValidator, CrossValidatorModel, ParamGridBuilder
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
-
 
 def split_arr_to_word(arr):
     new_arr = []
@@ -21,7 +19,16 @@ def split_arr_to_word(arr):
     return new_arr
 
 def remove_first_three(id):
-    return new_id[3:]
+    new_id = id[3:]
+    return new_id
+
+# This function was written by StackOverflow user zero323
+# https://stackoverflow.com/questions/39555864/how-to-access-element-of-a-vectorudt-column-in-a-spark-dataframe
+def ith_(v, i):
+    try:
+        return float(v[i])
+    except ValueError:
+        return None
 
 def main(context):
     """Main function takes a Spark SQL context."""
@@ -119,10 +126,21 @@ def main(context):
     # Task 9:
     # remove any comments that contain '\s' or '&gt;'
     new_table = new_table.filter(~new_table.body.contains("&gt;") & ~new_table.body.contains("\s"))
-    # repeat task 4 and 5
-    link_id, state, comment_id, body, created_utc, title, id]
+    # repeat task 4 and 5 and 6A
+    # [link_id, state, comment_id, body, created_utc, title, id]
     sanitized_new_table = new_table.select("link_id", "state", "comment_id", "body", "created_utc", \
             "title", "id", split_udf(sanitize_udf("body")).alias("sanitized_text"))
+    final_table = cv_table.transform(sanitized_new_table)
+
+    # run the models
+    task9_table = final_table.select("link_id", "state", "comment_id", "body", "created_utc", "title", "id", "sanitized_text", col("vectors").alias("features"))
+    posResult = posModel.transform(task9_table)
+    negResult = negModel.transform(task9_table)
+
+    ith = udf(ith_, FloatType())
+
+
+
 
 if __name__ == "__main__":
     conf = SparkConf().setAppName("CS143 Project 2B")
