@@ -133,12 +133,13 @@ def main(context):
     final_table = cv_table.transform(sanitized_new_table)
 
     # run the models
-    task9_table = final_table.select("link_id", "state", "comment_id", "body", "created_utc", "title", "id", "sanitized_text", col("vectors").alias("features"))
-    posResult = posModel.transform(task9_table)
-    negResult = negModel.transform(task9_table)
-
     ith = udf(ith_, FloatType())
-
+    task9_table = final_table.select("link_id", "state", "comment_id", "body", "created_utc", "title", "id", "sanitized_text", col("vectors").alias("features"))
+    task9_table = posModel.transform(task9_table)
+    task9_table = task9_table.withColumn("pos", F.when(ith(task9_table.probability, lit(1)) > 0.2, 1).otherwise(0)).select("link_id", "state", "comment_id", "body", "created_utc", "title", "id", "features", "pos")
+    task9_table = negModel.transform(task9_table)
+    task9_table = task9_table.withColumn("neg", F.when(ith(task9_table.probability, lit(1)) > 0.25, 1).otherwise(0)).select("link_id", "state", "comment_id", "body", "created_utc", "title", "id", "pos", "neg")
+    task9_table.show(n=100)
 
 
 
