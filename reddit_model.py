@@ -19,18 +19,13 @@ def split_arr_to_word(arr):
         for w in temp_arr:
             new_arr.append(w)
     return new_arr
-<<<<<<< HEAD
-    
-=======
 
 def remove_first_three(id):
     return new_id[3:]
 
->>>>>>> 30a409927e3171abb6f1f9ebb73cbfdfc52601f4
 def main(context):
     """Main function takes a Spark SQL context."""
     # Task 1: load data
-
     # Run this if loading for the first time
     ''' 
     comments = context.read.json("comments-minimal.json.bz2")
