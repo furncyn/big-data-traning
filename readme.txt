@@ -1,8 +1,9 @@
-			Project 2B
-reddit_model.py: a Spark script written in Python
+			CS143 Project 2B
+
+(Extra credit) Task 10 part 5: We compute the percentage of positive and negative comments over each month 
 
 To run the script:
- - command: `spark-submit reddit_model.py` or run in `pyspark`
- - Use javascript 8 not 11
-	- Change by `sudo update-alternatives --config java`
+Usage: `spark-submit reddit_model.py` or run in `pyspark` shell
+Additional: The program requires the use of javascript 8 not 11
+ - To change the version of javascript in Linux, type `sudo update-alternatives --config java`
 

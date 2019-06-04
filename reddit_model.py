@@ -32,50 +32,50 @@ def ith_(v, i):
 
 def main(context):
     """Main function takes a Spark SQL context."""
-    # Task 1: load data
-    # Run this if loading for the first time
-    ''' 
+    # TASK 1: load data
+        
+    # Read from original source files
     comments = context.read.json("comments-minimal.json.bz2")
     submissions = context.read.json("submissions.json.bz2")
     labels = context.read.csv("labeled_data.csv", header=True)
-    
+    '''
+    # Write to parquet files
     comments.write.parquet("comments.parquet")
     submissions.write.parquet("submissions.parquet")
     labels.write.parquet("labels.parquet")
-    '''
-
+    # Read from parquet files
     comments = context.read.parquet("comments.parquet")
     submissions = context.read.parquet("submissions.parquet")
     labels= context.read.parquet("labels.parquet")
-
+    '''
     comments = comments.select("id", "body", "created_utc", "author_flair_text", "link_id")
     submissions = submissions.select("title", "id")
     labels = labels.select("Input_id", "labeldjt")
 
-    # Task 2: join labeled_data with comments_minimal
+    # TASK 2: join labeled_data with comments_minimal
     comments_labels = labels.join(comments, labels.Input_id == comments.id).select("id", "body", "created_utc", "author_flair_text", "link_id", "labeldjt")
     
-    # Task 4 & 5: Generate unigrams, bigrams, and trigrams for each comment in the labeled data,
+    # TASK 4, 5: Generate unigrams, bigrams, and trigrams for each comment in the labeled data,
     # store all of them into one column and split them by words.
     sanitize_udf = udf(sanitize, ArrayType(StringType()))
     split_udf = udf(split_arr_to_word, ArrayType(StringType()))
     sanitized_table = comments_labels.select("id", "labeldjt", \
             split_udf(sanitize_udf("body")).alias("sanitized_text"))
     
-    # Task 6A: Turn raw features into a sparse feature vector. Only use tokens that appear more than 10 times.
+    # TASK 6A: Turn raw features into a sparse feature vector. Only use tokens that appear more than 10 times.
     cv = CountVectorizer(minDF=10.0, inputCol="sanitized_text", outputCol="vectors")
     cv_table = cv.fit(sanitized_table)
     vec_table = cv_table.transform(sanitized_table)
     
-    # Task 6B: Add columns for positive and negative labels
+    # TASK 6B: Add columns for positive and negative labels
     final = vec_table.withColumn("positive", F.when(vec_table.labeldjt == 1, 1).otherwise(0))\
             .withColumn("negative", F.when(vec_table.labeldjt == -1, 1).otherwise(0))
     pos = final.select(col("id"), col("vectors").alias("features"), col("positive").alias("label"))
     neg = final.select(col("id"), col("vectors").alias("features"), col("negative").alias("label"))
 
-    # Task 7: Initialize two logistic regression models.
+    # TASK 7: Initialize two logistic regression models.
+
     # Code to generate the models:
-    '''
     # Replace labelCol with the column containing the label, and featuresCol with the column containing the features.
     poslr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
     neglr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
@@ -114,28 +114,27 @@ def main(context):
     # Once we train the models, we don't want to do it again. We can save the models and load them again later.
     posModel.save("project2/pos.model")
     negModel.save("project2/neg.model")
-    '''
 
+    '''
     # To load saved models:
     posModel = CrossValidatorModel.load("project2/pos.model")
     negModel = CrossValidatorModel.load("project2/neg.model")
+    '''
 
-
-    # Task 8: read more parts of comments
+    # TASK 8: read more parts of comments
     fix_link_udf = udf(remove_first_three, StringType())
     comments_fixed = comments.select(col("id").alias("comment_id"), fix_link_udf("link_id").alias("link_id"),"created_utc","body",col("author_flair_text").alias("state"))
     new_table, = submissions.join(comments_fixed, comments_fixed.link_id == submissions.id).randomSplit([0.2])
 
-    # Task 9:
+    # TASK 9:
     # remove any comments that contain '\s' or '&gt;'
     new_table = new_table.filter(~new_table.body.contains("&gt;") & ~new_table.body.contains("\s"))
-    # repeat task 4 and 5 and 6A
-    # [link_id, state, comment_id, body, created_utc, title, id]
+    # Repeat task 4 and 5 and 6A
     sanitized_new_table = new_table.select("link_id", "state", "comment_id", "body", "created_utc", \
             "title", split_udf(sanitize_udf("body")).alias("sanitized_text"))
     final_table = cv_table.transform(sanitized_new_table)
 
-    # run the models
+    # Run the models
     ith = udf(ith_, FloatType())
     task9_table = final_table.select("link_id", "state", "comment_id", "body", "created_utc", "title", "sanitized_text", col("vectors").alias("features"))
     task9_table = posModel.transform(task9_table)
@@ -143,7 +142,7 @@ def main(context):
     task9_table = negModel.transform(task9_table)
     task9_table = task9_table.withColumn("neg", F.when(ith(task9_table.probability, lit(1)) > 0.25, 1).otherwise(0)).select("link_id", "state", "comment_id", "body", "created_utc", "title", "pos", "neg")
 
-    # Task 10: calculate statistics
+    # TASK 10: calculate statistics
     # Part 1:
     part1 = task9_table.groupBy().agg(F.avg("pos").alias("pos"), F.avg("neg").alias("neg"))
     # Part 2:
@@ -151,12 +150,16 @@ def main(context):
     # Part 3:
     states = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
     part3 = task9_table.groupBy("state").agg(F.avg("pos").alias("pos"), F.avg("neg").alias("neg"))
+    # Part 4:
+    part4 = task9_table.groupBy("link_id").agg(F.avg("pos").alias("pos"), F.avg("neg").alias("neg"))
+    # Part 5: calculate percentage of positive and negative comments by month
+    part5 = task9_table.groupBy(F.month(from_unixtime("created_utc","yyy-MM-dd"))).agg(F.avg("pos").alias("pos"), F.avg("neg").alias("neg"))
     
     part1.write.csv("part1.csv")
     part2.write.csv("part2.csv")
     part3.write.csv("part3.csv")
-
-
+    part4.repartition(1).write.format("com.databricks.spark.csv").save("part4.csv")
+    part5.repartition(1).write.format("com.databricks.spark.csv").save("part5.csv")
 
 if __name__ == "__main__":
     conf = SparkConf().setAppName("CS143 Project 2B")
