@@ -95,8 +95,8 @@ dev.off()
 
 jpeg('plot5a.jpeg')
 submission.data <- read.csv("by_s_score.csv", quote="", header=FALSE)
-plot(V2~V1, data=story.data, col='darkgreen', pch='.',
-     main="Sentiment By Score on Submission")
+plot(V2~V1, data=story.data, col='blue', pch='.',
+     main="Sentiment By Score on Submission", xlab="Submission Score", ylab="Sentiment")
 points(V3~V1, data=story.data, col='red', pch='.')
 dev.off()
 
@@ -112,8 +112,8 @@ dev.off()
 
 jpeg('plot5b.jpeg')
 comment.data <- read.csv("by_c_score.csv", quote="", header=FALSE)
-plot(V2~V1, data=comment.data, col='darkgreen', pch='.',
-     main="Sentiment By Score on Comments")
+plot(V2~V1, data=comment.data, col='blue', pch='.',
+     main="Sentiment By Score on Comments", xlab="Comment Score", ylab="Sentiment")
 points(V3~V1, data=comment.data, col='red', pch='.')
 dev.off()
 
@@ -127,7 +127,7 @@ dev.off()
 
 month <- read.csv("part5.csv", stringsAsFactors=FALSE, header=FALSE)
 
-#jpeg('plot1.jpeg')
+jpeg('plot1.jpeg')
 # Plot it
 matplot(month[1], month[3], col=c("blue"), type='p', pch=0, main="Sentiment By Month", xlab="Month", ylab="Sentiment")
 dev.off()
