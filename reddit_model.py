@@ -160,8 +160,8 @@ def main(context):
     part1.repartition(1).write.format("com.databricks.spark.csv").save("part1.csv")
     part2.repartition(1).write.format("com.databricks.spark.csv").save("part2.csv")
     part3.repartition(1).write.format("com.databricks.spark.csv").save("part3.csv")
-    by_c_score.repartition(1).write.format("com.databricks.spark.csv").save("c_score.csv")
-    by_s_score.repartition(1).write.format("com.databricks.spark.csv").save("s_score.csv")
+    by_c_score.repartition(1).write.format("com.databricks.spark.csv").save("by_c_score.csv")
+    by_s_score.repartition(1).write.format("com.databricks.spark.csv").save("by_s_score.csv")
     part4.repartition(1).write.format("com.databricks.spark.csv").save("part4.csv")
     part5.repartition(1).write.format("com.databricks.spark.csv").save("part5.csv")
     
