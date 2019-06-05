@@ -117,3 +117,17 @@ plot(V2~V1, data=comment.data, col='darkgreen', pch='.',
 points(V3~V1, data=comment.data, col='red', pch='.')
 dev.off()
 
+########################################
+# PLOT 6: SENTIMENT BY MONTH
+########################################
+
+# This assumes you have a CSV file called "time_data.csv" with the columns:
+# date (like 2018-08-01), Positive, Negative
+# You should use the FULL PATH to the file, just in case.
+
+month <- read.csv("part5.csv", stringsAsFactors=FALSE, header=FALSE)
+
+#jpeg('plot1.jpeg')
+# Plot it
+matplot(month[1], month[3], col=c("blue"), type='p', pch=0, main="Sentiment By Month", xlab="Month", ylab="Sentiment")
+dev.off()
